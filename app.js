@@ -333,25 +333,37 @@ async function validateCode(code, display = '') {
  * Search concepts (using CodeSystem search)
  */
 async function searchConcepts(term, filter = '', count = 20) {
-    // Try using ValueSet $expand with an implicit LOINC value set first
-    // This approach works on most FHIR terminology servers
-    const params = {
-        'url': 'http://loinc.org/vs',
-        'filter': term,
-        'count': count
+    // Default: ValueSet $expand against the implicit LOINC value set
+    const expandParams = {
+        url: 'http://loinc.org/vs',
+        filter: term,
+        count: count
     };
-    
-    try {
-        return await fhirRequest('/ValueSet/$expand', params);
-    } catch (e) {
-        // Fallback: Try direct CodeSystem filter parameter
-        const fallbackParams = {
-            'system': CONFIG.loincSystem,
-            'filter': term,
-            '_count': count
-        };
-        return await fhirRequest('/CodeSystem/$lookup', fallbackParams);
+
+    // Status filter uses activeOnly on $expand
+    if (filter === 'STATUS') {
+        expandParams.activeOnly = true;
+        return await fhirRequest('/ValueSet/$expand', expandParams);
     }
+
+    // Property-based filters: use $find-matches when a filter is selected
+    if (filter) {
+        const findParams = {
+            system: CONFIG.loincSystem,
+            property: filter,
+            value: term,
+            count: count
+        };
+
+        try {
+            return await fhirRequest('/CodeSystem/$find-matches', findParams);
+        } catch (e) {
+            // Fallback to $expand if $find-matches is not supported
+            return await fhirRequest('/ValueSet/$expand', expandParams);
+        }
+    }
+
+    return await fhirRequest('/ValueSet/$expand', expandParams);
 }
 
 /**
