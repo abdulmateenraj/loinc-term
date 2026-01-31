@@ -4,14 +4,13 @@
  */
 
 // ===== Configuration =====
+// ===== Configuration =====
 const CONFIG = {
-    // Use Cloudflare Worker proxy to avoid CORS issues
-    // IMPORTANT: Replace 'YOUR_WORKER_NAME' and 'YOUR_SUBDOMAIN' with your actual Cloudflare worker URL
-    // Direct server (has CORS issues): 'http://84.8.248.255:8080/fhir'
-    // Cloudflare Worker proxy: 'https://loinc-fhir-proxy.YOUR_SUBDOMAIN.workers.dev'
-    defaultServer: 'https://loinc-proxy.mateenraj.workers.dev/',
+    // FIX: Set to relative path '/fhir'. 
+    // The Cloudflare Worker will intercept this and forward it to the real server.
+    defaultServer: '/fhir', 
     
-    // Fallback direct server (for reference)
+    // Keep this for reference, but it won't be used actively
     directServer: 'http://84.8.248.255:8080/fhir',
     
     loincSystem: 'http://loinc.org',
@@ -935,3 +934,4 @@ document.addEventListener('DOMContentLoaded', () => {
         testConnection();
     }, 500);
 });
+
