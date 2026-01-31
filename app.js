@@ -218,7 +218,9 @@ function updateRecentCodes() {
  * Make FHIR API request
  */
 async function fhirRequest(endpoint, params = {}) {
-    const url = new URL(state.serverUrl + endpoint);
+    // FIX: Add 'window.location.origin' as the second argument.
+    // This allows relative paths (like '/fhir') to work by attaching them to the current domain.
+    const url = new URL(state.serverUrl + endpoint, window.location.origin);
     
     Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -934,4 +936,5 @@ document.addEventListener('DOMContentLoaded', () => {
         testConnection();
     }, 500);
 });
+
 
