@@ -15,21 +15,30 @@
         <header class="header">
             <div class="header-content">
                 <div class="logo">
-                    <i class="fas fa-flask"></i>
+                    <i class="fas fa-microscope"></i>
                     <span class="logo-text">LOINC Browser</span>
                 </div>
-                <div class="connection-status" id="connectionStatus">
-                    <span class="status-dot disconnected"></span>
-                    <span class="status-text">Disconnected</span>
+                <div class="header-actions">
+                    <a href="https://www.terminologies.tech" target="_blank" rel="noopener" class="nav-link-btn">
+                        <i class="fas fa-globe"></i> <span>Terminologies.tech</span>
+                    </a>
+                    <a href="https://loinc.org" target="_blank" rel="noopener" class="nav-link-btn">
+                        <i class="fas fa-external-link-alt"></i> <span>LOINC.org</span>
+                    </a>
+                    <button class="icon-btn" id="historyBtn" title="History">
+                        <i class="fas fa-history"></i>
+                    </button>
+                    <button class="icon-btn" id="helpBtn" title="Help">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+                    <button class="icon-btn" id="settingsBtn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="connection-status" id="connectionStatus">
+                        <span class="status-dot disconnected"></span>
+                        <span class="status-text">Disconnected</span>
+                    </div>
                 </div>
-                <nav class="nav-links">
-                    <a href="https://loinc.org" target="_blank" rel="noopener">
-                        <i class="fas fa-external-link-alt"></i> LOINC.org
-                    </a>
-                    <a href="https://www.terminologies.tech" target="_blank" rel="noopener">
-                        <i class="fas fa-globe"></i> Terminologies.tech
-                    </a>
-                </nav>
             </div>
         </header>
 
@@ -37,40 +46,8 @@
         <main class="main-content">
             <!-- Sidebar -->
             <aside class="sidebar">
-                <!-- Server Configuration -->
-                <section class="sidebar-section server-config">
-                    <h3><i class="fas fa-server"></i> Server Configuration</h3>
-                    <div class="form-group">
-                        <label for="serverUrl">FHIR Server URL (via CORS Proxy)</label>
-<input type="text" id="serverUrl" value="/fhir" 
-       placeholder="Enter FHIR server URL">
-                    </div>
-                    <button class="btn btn-primary" id="connectBtn">
-                        <i class="fas fa-plug"></i> Connect
-                    </button>
-                </section>
-
-                <!-- Operation Tabs -->
-                <section class="sidebar-section operation-tabs">
-                    <h3><i class="fas fa-tools"></i> Operations</h3>
-                    <div class="tabs">
-                        <button class="tab-btn active" data-tab="lookup">
-                            <i class="fas fa-search"></i> Lookup
-                        </button>
-                        <button class="tab-btn" data-tab="validate">
-                            <i class="fas fa-check-circle"></i> Validate
-                        </button>
-                        <button class="tab-btn" data-tab="search">
-                            <i class="fas fa-filter"></i> Search
-                        </button>
-                        <button class="tab-btn" data-tab="subsumes">
-                            <i class="fas fa-sitemap"></i> Subsumes
-                        </button>
-                    </div>
-                </section>
-
                 <!-- Lookup Operation -->
-                <section class="sidebar-section operation-panel" id="lookupPanel">
+                <section class="sidebar-section operation-panel hidden" id="lookupPanel">
                     <h3><i class="fas fa-search"></i> Code Lookup</h3>
                     <p class="help-text">Look up details for a LOINC code</p>
                     <div class="form-group">
@@ -98,8 +75,7 @@
                     <div class="form-group">
                         <label for="lookupLang">Language</label>
                         <select id="lookupLang">
-                            <option value="">All Languages</option>
-                            <option value="en">English</option>
+                            <option value="en" selected>English</option>
                             <option value="de-DE">German</option>
                             <option value="es-ES">Spanish (Spain)</option>
                             <option value="es-MX">Spanish (Mexico)</option>
@@ -137,7 +113,7 @@
                 </section>
 
                 <!-- Search Operation -->
-                <section class="sidebar-section operation-panel hidden" id="searchPanel">
+                <section class="sidebar-section operation-panel" id="searchPanel">
                     <h3><i class="fas fa-filter"></i> Search Concepts</h3>
                     <p class="help-text">Search for LOINC codes by term or filter</p>
                     <div class="form-group">
@@ -178,6 +154,25 @@
                     <button class="btn btn-success" id="subsumesBtn">
                         <i class="fas fa-code-branch"></i> Test Subsumption
                     </button>
+                </section>
+
+                <!-- Operation Tabs -->
+                <section class="sidebar-section operation-tabs">
+                    <h3><i class="fas fa-tools"></i> Operations</h3>
+                    <div class="tabs">
+                        <button class="tab-btn" data-tab="lookup">
+                            <i class="fas fa-search"></i> Lookup
+                        </button>
+                        <button class="tab-btn" data-tab="validate">
+                            <i class="fas fa-check-circle"></i> Validate
+                        </button>
+                        <button class="tab-btn active" data-tab="search">
+                            <i class="fas fa-filter"></i> Search
+                        </button>
+                        <button class="tab-btn" data-tab="subsumes">
+                            <i class="fas fa-sitemap"></i> Subsumes
+                        </button>
+                    </div>
                 </section>
 
                 <!-- Quick Examples -->
@@ -222,9 +217,9 @@
                 <!-- Welcome Message -->
                 <div class="welcome-message" id="welcomeMessage">
                     <div class="welcome-icon">
-                        <i class="fas fa-flask"></i>
+                        <i class="fas fa-microscope"></i>
                     </div>
-                    <h2>Welcome to LOINC Browser</h2>
+                    <h2>LOINC Browser</h2>
                     <p>Connect to a FHIR server and search for LOINC codes</p>
                     <div class="quick-start">
                         <h4>Quick Start:</h4>
@@ -317,25 +312,78 @@
             </section>
         </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-content">
-                <p>
-                    <i class="fas fa-flask"></i> LOINC Browser | Part of 
-                    <a href="https://www.terminologies.tech" target="_blank">Terminologies.tech</a>
-                </p>
-                <p class="server-info" id="serverInfo">
-                    Not connected
-                </p>
-                <p class="copyright">
-                    LOINC® is a registered trademark of Regenstrief Institute, Inc.
-                </p>
-            </div>
-        </footer>
     </div>
 
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Settings Modal -->
+    <div class="modal hidden" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> Settings</h3>
+                <button class="modal-close" id="closeSettingsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <section class="settings-section">
+                    <h4><i class="fas fa-server"></i> Server Configuration</h4>
+                    <div class="form-group">
+                        <label for="serverUrl">FHIR Server URL</label>
+                        <input type="text" id="serverUrl" value="/fhir" placeholder="Enter FHIR server URL">
+                    </div>
+                    <button class="btn btn-primary" id="connectBtn">
+                        <i class="fas fa-plug"></i> Connect
+                    </button>
+                    <p class="server-info" id="serverInfo">Not connected</p>
+                </section>
+                <section class="settings-section">
+                    <h4><i class="fas fa-info-circle"></i> About</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                        LOINC Browser is part of the Terminologies.tech suite of tools for healthcare terminology services.
+                    </p>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        LOINC® is a registered trademark of Regenstrief Institute, Inc.
+                    </p>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal hidden" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-question-circle"></i> Help</h3>
+                <button class="modal-close" id="closeHelpModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <section class="settings-section">
+                    <h4><i class="fas fa-search"></i> Search Concepts</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                        Search for LOINC codes by entering a term like "glucose" or "hemoglobin". Results show matching codes that you can click to view details.
+                    </p>
+                </section>
+                <section class="settings-section">
+                    <h4><i class="fas fa-code"></i> Code Lookup</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                        Enter a specific LOINC code (e.g., 2339-0) to view its full details including properties and translations.
+                    </p>
+                </section>
+                <section class="settings-section">
+                    <h4><i class="fas fa-check-circle"></i> Validate Code</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                        Check if a LOINC code exists and is valid in the terminology server.
+                    </p>
+                </section>
+                <section class="settings-section">
+                    <h4><i class="fas fa-sitemap"></i> Subsumption Test</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                        Test hierarchical relationships between two LOINC Part codes (LP codes).
+                    </p>
+                </section>
+            </div>
+        </div>
+    </div>
 
     <!-- History Modal -->
     <div class="modal hidden" id="historyModal">

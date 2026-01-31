@@ -33,6 +33,18 @@ const DOM = {
     connectBtn: document.getElementById('connectBtn'),
     connectionStatus: document.getElementById('connectionStatus'),
     serverInfo: document.getElementById('serverInfo'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    settingsModal: document.getElementById('settingsModal'),
+    closeSettingsModal: document.getElementById('closeSettingsModal'),
+    
+    // Help & History
+    helpBtn: document.getElementById('helpBtn'),
+    helpModal: document.getElementById('helpModal'),
+    closeHelpModal: document.getElementById('closeHelpModal'),
+    historyBtn: document.getElementById('historyBtn'),
+    historyModal: document.getElementById('historyModal'),
+    closeHistoryModal: document.getElementById('closeHistoryModal'),
+    historyList: document.getElementById('historyList'),
     
     // Operations
     tabs: document.querySelectorAll('.tab-btn'),
@@ -144,6 +156,8 @@ function showError(message) {
     DOM.errorText.textContent = message;
     DOM.welcomeMessage.classList.add('hidden');
     DOM.resultsContent.classList.add('hidden');
+    // Reset the title when showing error
+    DOM.resultsTitle.innerHTML = '<i class="fas fa-clipboard-list"></i> Results';
 }
 
 /**
@@ -164,14 +178,12 @@ function updateConnectionStatus(status, serverName = '') {
     const statusText = DOM.connectionStatus.querySelector('.status-text');
     
     statusDot.className = 'status-dot ' + status;
+    DOM.connectionStatus.className = 'connection-status' + (status === 'disconnected' ? ' disconnected' : '');
     
     switch(status) {
         case 'connected':
             statusText.textContent = 'Connected';
-            DOM.serverInfo.textContent = `Connected to: ${state.serverUrl}`;
-            if (serverName) {
-                DOM.serverInfo.textContent += ` (${serverName})`;
-            }
+            DOM.serverInfo.textContent = 'Connected to Server';
             break;
         case 'connecting':
             statusText.textContent = 'Connecting...';
@@ -272,9 +284,8 @@ async function testConnection() {
         const metadata = await fhirRequest('/metadata');
         state.connected = true;
         
-        const serverName = metadata.software?.name || 'FHIR Server';
-        updateConnectionStatus('connected', serverName);
-        showToast(`Connected to ${serverName}`, 'success');
+        updateConnectionStatus('connected');
+        showToast('Connected to Server', 'success');
         
         return true;
     } catch (error) {
@@ -322,16 +333,28 @@ async function validateCode(code, display = '') {
 }
 
 /**
- * Search concepts (using ValueSet $expand)
+ * Search concepts (using CodeSystem search)
  */
 async function searchConcepts(term, filter = '', count = 20) {
+    // Try using ValueSet $expand with an implicit LOINC value set first
+    // This approach works on most FHIR terminology servers
     const params = {
-        url: CONFIG.loincSystem,
-        filter: term,
-        count: count
+        'url': 'http://loinc.org/vs',
+        'filter': term,
+        'count': count
     };
     
-    return await fhirRequest('/ValueSet/$expand', params);
+    try {
+        return await fhirRequest('/ValueSet/$expand', params);
+    } catch (e) {
+        // Fallback: Try direct CodeSystem filter parameter
+        const fallbackParams = {
+            'system': CONFIG.loincSystem,
+            'filter': term,
+            '_count': count
+        };
+        return await fhirRequest('/CodeSystem/$lookup', fallbackParams);
+    }
 }
 
 /**
@@ -445,6 +468,8 @@ function displayLookupResults(data) {
     
     // Extract and display designations
     const designations = params.filter(p => p.name === 'designation');
+    const selectedLanguage = DOM.lookupLang?.value || 'en';
+    
     if (designations.length > 0) {
         // Group by language
         const byLanguage = {};
@@ -463,22 +488,29 @@ function displayLookupResults(data) {
             byLanguage[language].push({ use, value });
         });
         
-        const designationsHtml = Object.entries(byLanguage).map(([lang, items]) => `
-            <div class="designation-group">
-                <div class="designation-language">
-                    <i class="fas fa-globe"></i>
-                    ${getLanguageName(lang)} (${lang})
-                </div>
-                ${items.map(item => `
-                    <div class="designation-item">
-                        <div class="designation-use">${escapeHtml(item.use)}</div>
-                        <div class="designation-value">${escapeHtml(item.value)}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `).join('');
+        // Filter to show only the selected language
+        const filteredLanguages = Object.entries(byLanguage).filter(([lang]) => lang === selectedLanguage);
         
-        DOM.designationsBody.innerHTML = designationsHtml;
+        if (filteredLanguages.length > 0) {
+            const designationsHtml = filteredLanguages.map(([lang, items]) => `
+                <div class="designation-group">
+                    <div class="designation-language">
+                        <i class="fas fa-globe"></i>
+                        ${getLanguageName(lang)} (${lang})
+                    </div>
+                    ${items.map(item => `
+                        <div class="designation-item">
+                            <div class="designation-use">${escapeHtml(item.use)}</div>
+                            <div class="designation-value">${escapeHtml(item.value)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+            
+            DOM.designationsBody.innerHTML = designationsHtml;
+        } else {
+            DOM.designationsBody.innerHTML = `<p>No designations available for ${getLanguageName(selectedLanguage)}</p>`;
+        }
     } else {
         DOM.designationsBody.innerHTML = '<p>No designations/translations available</p>';
     }
@@ -559,9 +591,29 @@ function displaySearchResults(data) {
     DOM.searchResultsCard.classList.remove('hidden');
     DOM.jsonCard.classList.remove('hidden');
     
-    const expansion = data.expansion || {};
-    const contains = expansion.contains || [];
-    const total = expansion.total || contains.length;
+    // Handle both Parameters (from $find-matches) and ValueSet expansion formats
+    let contains = [];
+    let total = 0;
+    
+    if (data.resourceType === 'Parameters') {
+        // $find-matches returns Parameters with 'match' parameters
+        const params = data.parameter || [];
+        const matches = params.filter(p => p.name === 'match');
+        contains = matches.map(match => {
+            const parts = match.part || [];
+            const code = parts.find(p => p.name === 'code')?.valueCoding || {};
+            return {
+                code: code.code || '',
+                display: code.display || ''
+            };
+        });
+        total = contains.length;
+    } else if (data.expansion) {
+        // ValueSet expansion format
+        const expansion = data.expansion || {};
+        contains = expansion.contains || [];
+        total = expansion.total || contains.length;
+    }
     
     DOM.resultsTitle.innerHTML = `<i class="fas fa-search"></i> Search Results`;
     DOM.resultCount.textContent = `${contains.length} of ${total} results`;
@@ -927,9 +979,98 @@ DOM.serverUrl.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') testConnection();
 });
 
+// Settings modal
+if (DOM.settingsBtn && DOM.settingsModal) {
+    DOM.settingsBtn.addEventListener('click', () => {
+        DOM.settingsModal.classList.remove('hidden');
+    });
+}
+
+if (DOM.closeSettingsModal && DOM.settingsModal) {
+    DOM.closeSettingsModal.addEventListener('click', () => {
+        DOM.settingsModal.classList.add('hidden');
+    });
+}
+
+if (DOM.settingsModal) {
+    DOM.settingsModal.addEventListener('click', (e) => {
+        if (e.target === DOM.settingsModal) {
+            DOM.settingsModal.classList.add('hidden');
+        }
+    });
+}
+
+// Help modal
+if (DOM.helpBtn && DOM.helpModal) {
+    DOM.helpBtn.addEventListener('click', () => {
+        DOM.helpModal.classList.remove('hidden');
+    });
+}
+
+if (DOM.closeHelpModal && DOM.helpModal) {
+    DOM.closeHelpModal.addEventListener('click', () => {
+        DOM.helpModal.classList.add('hidden');
+    });
+}
+
+if (DOM.helpModal) {
+    DOM.helpModal.addEventListener('click', (e) => {
+        if (e.target === DOM.helpModal) {
+            DOM.helpModal.classList.add('hidden');
+        }
+    });
+}
+
+// History modal
+if (DOM.historyBtn && DOM.historyModal) {
+    DOM.historyBtn.addEventListener('click', () => {
+        // Populate history list
+        if (DOM.historyList) {
+            if (state.searchHistory.length > 0) {
+                DOM.historyList.innerHTML = state.searchHistory.map(item => `
+                    <div class="history-item" data-code="${escapeHtml(item.code)}" data-type="${escapeHtml(item.type)}">
+                        <span class="history-code">${escapeHtml(item.code)}</span>
+                        <span class="history-type">${escapeHtml(item.type)}</span>
+                    </div>
+                `).join('');
+                
+                // Add click handlers
+                DOM.historyList.querySelectorAll('.history-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const code = item.dataset.code;
+                        const type = item.dataset.type;
+                        DOM.lookupCode.value = code;
+                        switchToTab('lookup');
+                        performLookup();
+                        DOM.historyModal.classList.add('hidden');
+                    });
+                });
+            } else {
+                DOM.historyList.innerHTML = '<p class="no-history">No search history yet</p>';
+            }
+        }
+        DOM.historyModal.classList.remove('hidden');
+    });
+}
+
+if (DOM.closeHistoryModal && DOM.historyModal) {
+    DOM.closeHistoryModal.addEventListener('click', () => {
+        DOM.historyModal.classList.add('hidden');
+    });
+}
+
+if (DOM.historyModal) {
+    DOM.historyModal.addEventListener('click', (e) => {
+        if (e.target === DOM.historyModal) {
+            DOM.historyModal.classList.add('hidden');
+        }
+    });
+}
+
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', () => {
     updateRecentCodes();
+    switchToTab('search');
     
     // Auto-connect on load
     setTimeout(() => {
