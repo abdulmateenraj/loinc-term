@@ -89,7 +89,7 @@ GET /CodeSystem/$subsumes?system=http://loinc.org&codeA=LP7057-5&codeB=LP7057-5
 
 ### Changing the Default Server
 
-Edit `js/app.js` and modify the `CONFIG` object:
+Edit `app.js` and modify the `CONFIG` object:
 
 ```javascript
 const CONFIG = {
@@ -102,7 +102,7 @@ const CONFIG = {
 
 ### Styling
 
-The application uses CSS custom properties (variables) for easy theming. Edit `css/styles.css` to customize:
+The application uses CSS custom properties (variables) for easy theming. Edit `styles.css` to customize:
 
 ```css
 :root {
@@ -117,10 +117,9 @@ The application uses CSS custom properties (variables) for easy theming. Edit `c
 ```
 LOINC-Browser/
 ├── index.html          # Main HTML file
-├── css/
-│   └── styles.css      # Stylesheet
-├── js/
-│   └── app.js          # JavaScript application
+├── styles.css          # Stylesheet
+├── app.js              # JavaScript application
+├── worker.js           # Service worker
 ├── README.md           # This file
 └── LICENSE             # License file
 ```
