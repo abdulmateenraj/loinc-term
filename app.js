@@ -333,37 +333,31 @@ async function validateCode(code, display = '') {
  * Search concepts (using CodeSystem search)
  */
 async function searchConcepts(term, filter = '', count = 20) {
-    // Default: ValueSet $expand against the implicit LOINC value set
-    const expandParams = {
+    // Build the filter string - combine search term with property filter if specified
+    // FHIR ValueSet $expand filter uses simple text matching
+    let filterString = term;
+    
+    // For property-based filtering, we need to search within that property context
+    // The server should interpret this based on LOINC structure
+    const params = {
         url: 'http://loinc.org/vs',
-        filter: term,
+        filter: filterString,
         count: count
     };
 
-    // Status filter uses activeOnly on $expand
+    // Status filter uses activeOnly parameter
     if (filter === 'STATUS') {
-        expandParams.activeOnly = true;
-        return await fhirRequest('/ValueSet/$expand', expandParams);
+        params.activeOnly = true;
+    }
+    
+    // For COMPONENT, CLASS, etc. - add as property filter if server supports it
+    // Some servers support 'property' parameter for filtering
+    if (filter && filter !== 'STATUS') {
+        // Try using filter-property parameter (some servers support this)
+        params['property'] = filter;
     }
 
-    // Property-based filters: use $find-matches when a filter is selected
-    if (filter) {
-        const findParams = {
-            system: CONFIG.loincSystem,
-            property: filter,
-            value: term,
-            count: count
-        };
-
-        try {
-            return await fhirRequest('/CodeSystem/$find-matches', findParams);
-        } catch (e) {
-            // Fallback to $expand if $find-matches is not supported
-            return await fhirRequest('/ValueSet/$expand', expandParams);
-        }
-    }
-
-    return await fhirRequest('/ValueSet/$expand', expandParams);
+    return await fhirRequest('/ValueSet/$expand', params);
 }
 
 /**
@@ -383,8 +377,10 @@ async function testSubsumption(codeA, codeB) {
 
 /**
  * Display lookup results
+ * @param {Object} data - The FHIR response data
+ * @param {string} propertyFilter - Optional property filter to show only specific property
  */
-function displayLookupResults(data) {
+function displayLookupResults(data, propertyFilter = '') {
     state.lastResponse = data;
     
     // Reset visibility
@@ -430,7 +426,17 @@ function displayLookupResults(data) {
     `;
     
     // Extract and display properties
-    const properties = params.filter(p => p.name === 'property');
+    let properties = params.filter(p => p.name === 'property');
+    
+    // Filter properties if a specific property filter is selected
+    if (propertyFilter) {
+        properties = properties.filter(prop => {
+            const parts = prop.part || [];
+            const propCode = parts.find(p => p.name === 'code')?.valueCode || '';
+            return propCode.toUpperCase() === propertyFilter.toUpperCase();
+        });
+    }
+    
     if (properties.length > 0) {
         const propertiesHtml = properties.map(prop => {
             const parts = prop.part || [];
@@ -471,7 +477,8 @@ function displayLookupResults(data) {
             </table>
         `;
     } else {
-        DOM.propertiesBody.innerHTML = '<p>No properties available</p>';
+        const filterMsg = propertyFilter ? ` matching "${propertyFilter}"` : '';
+        DOM.propertiesBody.innerHTML = `<p>No properties available${filterMsg}</p>`;
     }
     
     // Extract and display designations
@@ -764,14 +771,14 @@ async function performLookup() {
     showLoading();
     
     try {
-        const selectedProperties = Array.from(DOM.lookupProperty.selectedOptions)
-            .map(opt => opt.value)
-            .filter(v => v);
+        // Get selected property (single select now)
+        const selectedProperty = DOM.lookupProperty.value;
+        const selectedProperties = selectedProperty ? [selectedProperty] : [];
         
         const language = DOM.lookupLang.value;
         
         const result = await lookupCode(code, selectedProperties, language);
-        displayLookupResults(result);
+        displayLookupResults(result, selectedProperty);
     } catch (error) {
         showError(`Lookup failed: ${error.message}`);
         showToast(`Lookup failed: ${error.message}`, 'error');

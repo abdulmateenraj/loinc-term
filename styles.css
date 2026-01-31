@@ -313,11 +313,6 @@ body {
     color: var(--text-light);
 }
 
-.form-group select[multiple] {
-    height: auto;
-    min-height: 100px;
-}
-
 /* Light theme form inputs for modals */
 .modal .form-group input,
 .modal .form-group select {
