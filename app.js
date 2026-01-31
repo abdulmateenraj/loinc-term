@@ -90,9 +90,6 @@ const DOM = {
     propertiesBody: document.getElementById('propertiesBody'),
     designationsCard: document.getElementById('designationsCard'),
     designationsBody: document.getElementById('designationsBody'),
-    jsonCard: document.getElementById('jsonCard'),
-    jsonBody: document.getElementById('jsonBody'),
-    rawJson: document.getElementById('rawJson'),
     searchResultsCard: document.getElementById('searchResultsCard'),
     searchResultsBody: document.getElementById('searchResultsBody'),
     resultCount: document.getElementById('resultCount'),
@@ -100,7 +97,6 @@ const DOM = {
     validationBody: document.getElementById('validationBody'),
     
     // Actions
-    copyJsonBtn: document.getElementById('copyJsonBtn'),
     downloadBtn: document.getElementById('downloadBtn'),
     clearBtn: document.getElementById('clearBtn'),
     
@@ -320,6 +316,7 @@ async function lookupCode(code, properties = [], language = '') {
  * Validate code
  */
 async function validateCode(code, display = '') {
+    // Use CodeSystem $validate-code with proper system parameter
     const params = {
         system: CONFIG.loincSystem,
         code: code
@@ -382,7 +379,6 @@ function displayLookupResults(data) {
     DOM.summaryCard.classList.remove('hidden');
     DOM.propertiesCard.classList.remove('hidden');
     DOM.designationsCard.classList.remove('hidden');
-    DOM.jsonCard.classList.remove('hidden');
     DOM.searchResultsCard.classList.add('hidden');
     DOM.validationCard.classList.add('hidden');
     
@@ -515,9 +511,6 @@ function displayLookupResults(data) {
         DOM.designationsBody.innerHTML = '<p>No designations/translations available</p>';
     }
     
-    // Display raw JSON
-    DOM.rawJson.textContent = JSON.stringify(data, null, 2);
-    
     showResults();
 }
 
@@ -533,7 +526,6 @@ function displayValidationResults(data, code) {
     DOM.designationsCard.classList.add('hidden');
     DOM.searchResultsCard.classList.add('hidden');
     DOM.validationCard.classList.remove('hidden');
-    DOM.jsonCard.classList.remove('hidden');
     
     const params = data.parameter || [];
     const result = params.find(p => p.name === 'result')?.valueBoolean;
@@ -572,8 +564,6 @@ function displayValidationResults(data, code) {
         `;
     }
     
-    DOM.rawJson.textContent = JSON.stringify(data, null, 2);
-    
     showResults();
 }
 
@@ -589,7 +579,6 @@ function displaySearchResults(data) {
     DOM.designationsCard.classList.add('hidden');
     DOM.validationCard.classList.add('hidden');
     DOM.searchResultsCard.classList.remove('hidden');
-    DOM.jsonCard.classList.remove('hidden');
     
     // Handle both Parameters (from $find-matches) and ValueSet expansion formats
     let contains = [];
@@ -641,8 +630,6 @@ function displaySearchResults(data) {
         DOM.searchResultsBody.innerHTML = '<p>No results found</p>';
     }
     
-    DOM.rawJson.textContent = JSON.stringify(data, null, 2);
-    
     showResults();
 }
 
@@ -658,7 +645,6 @@ function displaySubsumptionResults(data, codeA, codeB) {
     DOM.designationsCard.classList.add('hidden');
     DOM.searchResultsCard.classList.add('hidden');
     DOM.validationCard.classList.remove('hidden');
-    DOM.jsonCard.classList.remove('hidden');
     
     const params = data.parameter || [];
     const outcome = params.find(p => p.name === 'outcome')?.valueCode || 'not-subsumed';
@@ -686,8 +672,6 @@ function displaySubsumptionResults(data, codeA, codeB) {
             </div>
         </div>
     `;
-    
-    DOM.rawJson.textContent = JSON.stringify(data, null, 2);
     
     showResults();
 }
@@ -950,7 +934,6 @@ DOM.searchTerm.addEventListener('keypress', (e) => {
 });
 
 // Action buttons
-DOM.copyJsonBtn.addEventListener('click', copyJson);
 DOM.downloadBtn.addEventListener('click', downloadJson);
 DOM.clearBtn.addEventListener('click', clearResults);
 
